@@ -1,0 +1,83 @@
+@page "/Login"
+@using Server.Models
+@inject NavigationManager NavigationManager
+@inject IUserService UserService
+
+<div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+            <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
+            
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="space-y-4">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-red-500" />
+
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                        Email
+                    </label>
+                    <InputText id="email" 
+                               @bind-Value="loginModel.Email" 
+                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               placeholder="Enter your email" />
+                    <ValidationMessage For="@(() => loginModel.Email)" class="text-red-500 text-xs italic" />
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                        Password
+                    </label>
+                    <InputText id="password" 
+                               type="password"
+                               @bind-Value="loginModel.Password" 
+                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               placeholder="Enter your password" />
+                    <ValidationMessage For="@(() => loginModel.Password)" class="text-red-500 text-xs italic" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="text-red-500 text-sm mb-4">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <div class="flex items-center justify-between">
+                    <button type="submit" 
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                        Sign In
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    private LoginModel loginModel = new LoginModel();
+    private string ErrorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        try 
+        {
+            // Implement your authentication logic here
+            // This is a placeholder - replace with actual authentication service call
+            var response = await UserService.Login(loginModel);
+            if (response != null)
+            {
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                ErrorMessage = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "An error occurred during login.";
+        }
+    }
+    
+}

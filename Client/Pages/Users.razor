@@ -1,0 +1,170 @@
+﻿@page "/Users"
+@using System.Net
+@using Server.Models
+@using Shared.Services
+@inject IUserService UserService
+
+<PageTitle>User Management</PageTitle>
+
+<h1>Users</h1>
+
+<form>
+    <div class="row">
+        <div class="col-3">
+            <label class="form-label">First Name</label>
+            <input type="text" class="form-control" @bind="User.FirstName">
+        </div>
+        <div class="col-3">
+            <label class="form-label">Last Name</label>
+            <input type="text" class="form-control" @bind="User.LastName">
+        </div>
+        <div class="col-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" @bind="User.Email">
+        </div>
+        <div class="col-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" @bind="User.Password">
+        </div>
+        @* <div class="col-3"> *@
+        @*     <label class="form-label">Roles</label> *@
+        @*     <input type="text" class="form-control" @bind="User.Roles"> *@
+        @* </div> *@
+    </div>
+    <button type="button" class=" btn btn-success col-12 my-2" @onclick="AddUser">Add User</button>
+</form>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Roles</th>
+            <th>Email</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var member in LoadedUsers)
+        {
+            <tr>
+                <td>@member.Id</td>
+                <td>@member.FirstName @member.LastName</td>
+                <td>
+                    @if (member.Roles.Any())
+                    {
+                        @foreach (var role in member.Roles)
+                        {
+                            <span>@role</span>
+                        }
+                    }
+                    else
+                    {
+                        <span>Not Assigned</span>
+                    }
+                </td>
+                <td>@member.Email</td>
+                <td>
+                    <div class="row">
+                        @* <div class="col-4"> *@
+                        @*     $1$ <button type="button" class=" btn btn-secondary col-12 my-2" @onclick=" async () =>  { await EditUser(member); }">Edit User</button> #1# *@
+                        @* </div> *@
+                        <div class="col-4">
+                            <button type="button" class=" btn btn-primary col-12 my-2" @onclick="() => { RoleDropdown(member); }">Assign Role</button>
+                            @if (showRoleDropdown && selectedUser?.Id == member.Id)
+                            {
+                            <select class="form-select" @onchange="async (e) => await AssignRole(member, e.Value.ToString())">
+                                <option value="">Select Role</option>
+                                @foreach (var role in roles)
+                                {
+                                <option value="@role">@role</option>
+                                }
+                            </select>
+                            }
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class=" btn btn-danger col-12 my-2" @onclick=" async ()  => { await DeleteUser(member); }">Delete User</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    bool loading = false;
+    bool showRoleDropdown = false;
+    private List<UserView>? LoadedUsers = new List<UserView>();
+    private UserView? selectedUser;
+    private Register User = new Register();
+    private List<string> roles = new List<string>();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        LoadedUsers = await UserService.GetUsers();
+        roles = await UserService.GetRoles();
+    }
+    
+    private void RoleDropdown(UserView user)
+    {
+        showRoleDropdown = !showRoleDropdown;
+        selectedUser = user;
+    }
+
+    private async Task AddUser()
+    {
+        loading = true;
+        StateHasChanged();
+        var newUser = await UserService.AddUser(User);
+        LoadedUsers?.Add(newUser);
+        StateHasChanged();
+        loading = false;
+        StateHasChanged();
+    }
+    private async Task EditUser(UserView user)
+    {
+        loading = true;
+        StateHasChanged();
+        // var newUser = await UserService.UpdateUser();
+        // LoadedUsers?.Add(newUser);
+        StateHasChanged();
+        loading = false;
+        StateHasChanged();
+    }
+    private async Task AssignRole(UserView user, string role)
+    {
+        loading = true;
+        StateHasChanged();
+        await UserService.AssignRole(user.Id, role);
+        var selectedUser = LoadedUsers.FirstOrDefault(u => u.Id == user.Id);
+        if (selectedUser != null)
+        {
+            selectedUser.Roles.Clear();
+            selectedUser.Roles.Add(role);
+        }
+        StateHasChanged();
+        loading = false;
+        StateHasChanged();
+    }
+    
+    private async Task DeleteUser(UserView user)
+    {
+        loading = true;
+        StateHasChanged();
+        await UserService.DeleteUser(user.Id);
+        LoadedUsers?.Remove(user);
+        StateHasChanged();
+        loading = false;
+        StateHasChanged();
+    }
+}

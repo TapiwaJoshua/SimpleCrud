@@ -2,10 +2,14 @@ using Microsoft.AspNetCore.Identity;
 using Server.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MySqlX.XDevAPI.Common;
+using Server.Data;
 
 namespace Server.Services;
 
-public class UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+public class UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context )
     : IUserService
 {
     public async Task<UserView> GetUser(string userId)
@@ -44,6 +48,31 @@ public class UserService(UserManager<ApplicationUser> userManager, RoleManager<I
 
         return userViewModels;
     }
+    
+    public async Task<UserView> AddUser(Register user)
+    {
+        ApplicationUser userToCreate = new ApplicationUser
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            UserName = user.Email,
+            PasswordHash = user.Password,
+        };
+        await userManager.CreateAsync(userToCreate);
+        var users = await GetAllUsers();
+        var UserCreated = users.FirstOrDefault(x => x.Email == user.Email);
+
+        return new UserView()
+        {
+            Id = UserCreated.Id,
+            Email = UserCreated.Email,
+            FirstName = UserCreated.FirstName,
+            LastName = UserCreated.LastName,
+            Roles = new List<string>()
+        };
+    }
+
 
     public async Task<IdentityResult> UpdateUser(string userId, Update model)
     {
@@ -91,6 +120,13 @@ public class UserService(UserManager<ApplicationUser> userManager, RoleManager<I
         var user = await userManager.FindByIdAsync(userId);
         if (user == null) throw new KeyNotFoundException("User not found");
 
+        // Ensure the user is not already being tracked
+        var trackedUser = context.Users.Local.FirstOrDefault(u => u.Id == userId);
+        if (trackedUser != null)
+        {
+            context.Entry(trackedUser).State = EntityState.Detached;
+        }
+
         return await userManager.DeleteAsync(user);
     }
 
@@ -111,7 +147,7 @@ public class UserService(UserManager<ApplicationUser> userManager, RoleManager<I
 
         if (!await roleManager.RoleExistsAsync(role))
             await roleManager.CreateAsync(new IdentityRole(role));
-
+        await userManager.RemoveFromRolesAsync(user, await userManager.GetRolesAsync(user));
         return await userManager.AddToRoleAsync(user, role);
     }
 
@@ -121,5 +157,17 @@ public class UserService(UserManager<ApplicationUser> userManager, RoleManager<I
         if (user == null) throw new KeyNotFoundException("User not found");
 
         return await userManager.RemoveFromRoleAsync(user, role);
+    }
+
+    public Task<IdentityResult> CreateRole(string role)
+    {
+        var result = roleManager.CreateAsync(new IdentityRole(role));
+        return result;
+    }
+    public async Task<bool> Login(LoginModel login)
+    {
+        var user = await userManager.FindByEmailAsync(login.Email);
+        var result = await userManager.CheckPasswordAsync(user, login.Password);
+        return result;
     }
 }

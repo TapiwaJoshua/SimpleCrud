@@ -17,7 +17,7 @@ public class Register
     public List<string> Roles { get; set; } = new List<string>();
 }
 
-public class Login
+public class LoginModel
 {
     [Required]
     [EmailAddress]

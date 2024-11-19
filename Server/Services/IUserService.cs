@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Server.Controllers;
 using Server.Models;
 
 namespace Server.Services;
@@ -12,4 +13,6 @@ public interface IUserService
     Task<List<string>> GetRoles();
     Task<IdentityResult> AssignRole(string userId, string role);
     Task<IdentityResult> RemoveRole(string userId, string role);
+    Task<IdentityResult> CreateRole(string role);
+    Task <UserView> AddUser(Register user);
 }

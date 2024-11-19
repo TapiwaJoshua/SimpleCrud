@@ -26,15 +26,17 @@ if (builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-
+// Add CORS services
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(corsPolicyBuilder =>
-    {
-        corsPolicyBuilder.WithOrigins("https://localhost:5001") // Client URL
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowSpecificOrigins",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5293")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
 });
 
 builder.Services
@@ -57,14 +59,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 var app = builder.Build();
 
-app.UseCors();
-
 using var scope = app.Services.CreateScope();
 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 CreateRoles(roleManager).Wait();
-
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -72,12 +70,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapIdentityApi<ApplicationUser>();
-
+// Apply CORS middleware before other middlewares
+app.UseCors("AllowSpecificOrigins");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapIdentityApi<ApplicationUser>();
 app.Run();
 
 async Task CreateRoles(RoleManager<IdentityRole> roleManager)
@@ -91,7 +90,7 @@ async Task CreateRoles(RoleManager<IdentityRole> roleManager)
             await roleManager.CreateAsync(new IdentityRole(roleName));
         }
     }
-    
+
     var adminEmail = "joshua226841@gmail.com";
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {

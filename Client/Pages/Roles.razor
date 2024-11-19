@@ -1,0 +1,72 @@
+﻿@page "/Roles"
+@using Microsoft.AspNetCore.Identity
+@using Server.Models
+@inject HttpClient Http
+@inject IUserService UserService
+
+<PageTitle>Role Management</PageTitle>
+
+<h1>Role Management</h1>
+
+<form>
+    <div class="row">
+        <div class="col-3">
+            <label class="form-label">Role Name</label>
+            <input type="text" class="form-control" @bind="Role">
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="col-3">
+            <button type="button" class=" btn btn-success col-12 my-2" @onclick="AddRole">Add Role</button>
+        </div>
+    </div>
+</form>
+
+<div class="row">
+    <div class="col-6">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Name</th>
+                @* <th>Actions</th> *@
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var role in LoadedRoles)
+            {
+            <tr>
+                <td>@role</td>
+                @* <td> *@
+                @*     <div class="row"> *@
+                @*         <div class="col-4"> *@
+                @*             <button type="button" class=" btn btn-danger col-12 my-2" @onclick=" async ()  => { await DeleteRole(role); }">Delete Role</button> *@
+                @*         </div> *@
+                @*     </div> *@
+                @* </td> *@
+            </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+@code {
+    
+    private List<string>? LoadedRoles = new List<string>();
+    string Role { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        LoadedRoles = await UserService.GetRoles();
+    }
+    
+    private async Task AddRole()
+    {
+       var result = await UserService.AddRole(Role);
+       LoadedRoles.Add(result);
+       StateHasChanged();
+    }
+    
+
+}

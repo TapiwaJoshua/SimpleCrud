@@ -6,7 +6,7 @@ using Server.Services;
 
 namespace Server.Controllers;
 
-[Authorize(Roles = "Admin")]
+// [Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class User(
@@ -29,6 +29,12 @@ public class User(
         if (user == null) return NotFound();
         return user;
     }
+    
+    [HttpPost]
+    public async Task<UserView> AddUser([FromBody] Register user)
+    {
+        return await userService.AddUser(user);
+    }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(string id, Update model)
@@ -48,43 +54,28 @@ public class User(
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(string id)
+    public async Task<IdentityResult> DeleteUser(string id)
     {
-        try
-        {
-            var result = await userService.DeleteUser(id);
-            if (result.Succeeded)
-                return NoContent();
-
-            return BadRequest(result.Errors);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        return await userService.DeleteUser(id);
     }
 
     [HttpGet("roles")]
-    public async Task<ActionResult<IEnumerable<string>>> GetRoles()
+    public async Task<List<string>> GetRoles()
     {
         return await userService.GetRoles();
     }
+    
+    [HttpPost("CreateRole/{role}")]
+    
+    public async Task<ActionResult<IdentityResult>> CreateRole(string role)
+    {
+        return await userService.CreateRole(role);
+    }
 
     [HttpPost("{userId}/roles/{role}")]
-    public async Task<IActionResult> AssignRole(string userId, string role)
-    {
-        try
-        {
-            var result = await userService.AssignRole(userId, role);
-            if (result.Succeeded)
-                return NoContent();
-
-            return BadRequest(result.Errors);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+    public async Task<IdentityResult> AssignRole(string userId, string role)
+    { 
+        return await userService.AssignRole(userId, role);
     }
 
     [HttpDelete("{userId}/roles/{role}")]
